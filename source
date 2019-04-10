@@ -1,0 +1,343 @@
+import pandas as pnd
+import numpy as np
+from sklearn import preprocessing
+from sklearn import neighbors, datasets
+from sklearn import cross_validation
+from sklearn.linear_model import SGDClassifier
+from sklearn import svm
+import operator
+
+from sklearn.cross_validation import KFold
+
+import itertools
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn import metrics
+from sklearn.metrics import confusion_matrix
+
+from sklearn import tree
+import seaborn as sns
+
+from IPython.display import Image
+
+%matplotlib inline
+
+heart = pnd.read_csv('data.csv')
+header_row=['age','sex','cp','trestbps','chol','fbs','ecg','thalach','exang','oldpeak','slope','ca','thal','num']
+
+heart = pnd.read_csv('data.csv', names=header_row)
+heart[:5]
+
+heart.describe()
+
+print (heart.dtypes)
+
+heart.isnull()
+
+heart.notnull()
+
+heart.isnull().sum(axis=0)
+
+heart.dropna(how='any').shape
+
+print (heart['num'].value_counts())
+
+print (heart['trestbps'].value_counts().head())
+
+print (heart['trestbps'].value_counts())
+print ("male:\n",heart[heart['sex']==1]['trestbps'].value_counts())
+print ("Female:\n",heart[heart['sex']==0]['trestbps'].value_counts())
+
+names_descr = dict()
+categorical_columns = ["sex", "cp", "fbs", "ecg", "exang", "slope", "ca","thal", "num"]
+for c in categorical_columns:
+    print  (heart.groupby([c])["age"].count())
+
+print(heart.isnull().sum())
+
+heart_d = heart[heart["num"] >= 0 ]
+heart_d[:5]
+print  ("Minimum age to Maximum age per disease type")
+
+heart_d.groupby(["num", ])["age"].min().astype(str) + ', ' +  heart_d.groupby(["num", ])["age"].max().astype(str)
+
+print ("Count each sex per heart disease type")
+heart_d.groupby(["num", "sex"])["age"].count()
+
+print ("Count each chest pain value per heart disease type")
+heart_d.groupby(["num", "cp"])["age"].count()
+
+print ("Minimum blood pressure to Maximum  blood pressure per disease type")
+
+heart_d.groupby(["num"])["trestbps"].min().astype(str) + ', ' +  heart_d.groupby(["num"])["trestbps"].max().astype(str)
+
+print ("Mean blood pressure per disease type")
+heart_d.groupby(["num", ])["trestbps"].mean()
+
+print ("Minimum serum_cholestoral to Maximum serum_cholestoral per disease type")
+
+heart_d.groupby(["num"])["chol"].min().astype(str) + ', ' +  heart_d.groupby(["num"])["chol"].max().astype(str)
+
+print ("Mean serum_cholestoral per disease type")
+heart_d.groupby(["num", ])["chol"].mean()
+
+print ("Count each fasting_blood_sugar per heart disease type")
+heart_d.groupby(["num", "fbs"])["age"].count()
+
+print ("Count each electrocardiographic per heart disease type")
+heart_d.groupby(["num", "ecg"])["age"].count()
+
+print ("Minimum max_heart_rate to Maximum max_heart_rate per disease type")
+
+heart_d.groupby(["num"])["thalach"].min().astype(str) + ', ' +  heart_d.groupby(["num"])["thalach"].max().astype(str)
+
+print ("Mean max_heart_rate per disease type")
+heart_d.groupby(["num", ])["thalach"].mean()
+
+print ("Count  induced_angina per heart disease type")
+heart_d.groupby(["num", "exang"])["age"].count()
+
+print ("Count  mean ST_depression per heart disease type")
+heart_d.groupby(["num"])["oldpeak"].mean()
+
+print ("Count slope per heart disease type")
+heart_d.groupby(["num", "slope"])["age"].count()
+
+heart.loc[:, "diag_int"] = heart.loc[:, "num"].apply(lambda x: 1 if x >= 1 else 0)
+for c in heart.columns[:-1]:
+    heart[c] = heart[c].apply(lambda x: heart[heart[c]!='?'][c].astype(float).mean() if x == "?" else x)
+    heart[c] = heart[c].astype(float)
+continuous_features_diag = ['age','trestbps','chol','thalach','ecg','num']
+%matplotlib inline
+from matplotlib import pyplot as plt
+import seaborn as sns
+sns.pairplot(heart[continuous_features_diag],hue='num')
+def heatMap(df, mirror):
+    corr = df.corr()
+    fig, ax = plt.subplots(figsize=(10, 10))
+    colormap = sns.diverging_palette(220, 10, as_cmap=True)
+    if mirror == True:
+       sns.heatmap(corr, cmap=colormap, annot=True, fmt=".2f")
+       plt.xticks(range(len(corr.columns)), corr.columns);
+       plt.yticks(range(len(corr.columns)), corr.columns)
+    else:
+       dropSelf = np.zeros_like(corr)
+       dropSelf[np.triu_indices_from(dropSelf)] = True
+       colormap = sns.diverging_palette(220, 10, as_cmap=True)
+       sns.heatmap(corr, cmap=colormap, annot=True, fmt=".2f", mask=dropSelf)
+       plt.xticks(range(len(corr.columns)), corr.columns);
+       plt.yticks(range(len(corr.columns)), corr.columns)
+    plt.show()
+continuous_features = ['age','trestbps','chol','thalach','oldpeak']
+heatMap(heart[continuous_features],True)
+from matplotlib import pyplot as plt
+heart_0 = heart.loc[heart['num'] == 0]
+heart_1 = heart.loc[heart['num'] >= 1]
+sns.violinplot(heart_0['age'],title="People diagnosed with no heart disease")
+plt.show()
+sns.violinplot(heart_1['age'],title="People diagnosed with heart disease")
+plt.show()
+sns.violinplot(heart_0['cp'])
+plt.show()
+sns.violinplot(heart_1['cp'])
+plt.show()
+sns.violinplot(heart_0['thalach'])
+plt.show()
+sns.violinplot(heart_1['thalach'])
+plt.show()
+heart_0_max_heart_rate = heart_0[np.logical_and(heart_0['thalach'] >= 155,heart_0['thalach'] <= 185)]
+heart_1_max_heart_rate = heart_1[np.logical_and(heart_1['thalach'] >= 120,heart_1['thalach'] <= 160)]
+sns.distplot(heart_0_max_heart_rate['age'])
+sns.distplot(heart_1_max_heart_rate['age'])
+with sns.axes_style(style='ticks'):
+    g = sns.factorplot("num", "age", "sex", data=heart, kind="box")
+    g.set_axis_labels("Diagnosis", "Age");
+heart_0_male = heart_0.loc[heart_0['sex'] == 1]
+heart_0_female = heart_0.loc[heart_0['sex'] == 0]
+heart_1_male = heart_1.loc[heart_1['sex'] == 1]
+heart_1_female = heart_1.loc[heart_1['sex'] == 0]
+
+
+n_groups = 2
+means_frank = (len(heart_0_male),len(heart_1_male))
+means_guido = (len(heart_0_female),len(heart_1_female))
+
+fig, ax = plt.subplots()
+index = np.arange(n_groups)
+bar_width = 0.20
+opacity = 0.8
+ 
+rects1 = plt.bar(index, means_frank, bar_width,
+                 alpha=opacity,
+                 color='r',
+                 label='Male')
+ 
+rects2 = plt.bar(index + bar_width, means_guido, bar_width,
+                 alpha=opacity,
+                 color='y',
+                 label='Female')
+ 
+plt.xlabel('Diagnosis')
+plt.ylabel('Count')
+plt.title('Gender frequency')
+plt.xticks(index + bar_width - 0.105, ('No heart disease', 'Heart disease'))
+plt.legend()
+ 
+plt.tight_layout()
+plt.show()
+sns.jointplot("age", "trestbps", data=heart_1_max_heart_rate, kind='reg')
+sns.jointplot("age", "chol", data=heart_1_max_heart_rate, kind='reg')
+sns.jointplot("age", "cp", data=heart_1_max_heart_rate, kind='reg')
+
+g=sns.jointplot(x="age", y="thalach", data=heart_1_max_heart_rate, kind='kde',color="r")
+g.plot_joint(plt.scatter, c="w", s=30, linewidth=1, marker="+")
+g.ax_joint.collections[0].set_alpha(0)
+g.set_axis_labels("$age$", "$thalach$");
+
+g=sns.jointplot(x="age", y="oldpeak", data=heart_1_max_heart_rate, kind='hex',color="g")
+g.plot_joint(plt.scatter, c="b", s=30, linewidth=1, marker="+")
+g.ax_joint.collections[0].set_alpha(0)
+g.set_axis_labels("$age$", "$oldpeak$");
+
+labels=heart['num'].values
+print (labels[:5],type(labels))
+from sklearn.model_selection import train_test_split
+x_train,x_test,y_train,y_test=train_test_split(heart,labels, test_size=0.8, random_state=42)
+print ("x_train:",x_train.shape)
+print ("y_train:",y_train.shape)
+print
+print ("x_test:",x_test.shape)
+print ("y_test:",y_test.shape)
+
+from sklearn import svm
+clf = svm.SVC(gamma=0.001, C=3)
+clf.fit(x_train,y_train)
+print ("SVM:",clf.score(x_test,y_test)*100,"%")
+pred=clf.predict(x_test)
+print(metrics.classification_report(y_test,pred))
+
+from sklearn import linear_model
+lrcv=linear_model.LogisticRegressionCV(fit_intercept=True,penalty='l2',dual=False)
+lrcv.fit(x_train,y_train)
+print ("Logistic Regression:",lrcv.score(x_test,y_test)*100,"%")
+print(metrics.classification_report(y_test,pred))
+
+from sklearn import model_selection 
+from sklearn.ensemble import RandomForestClassifier
+np.random.seed(133)
+clf=RandomForestClassifier(n_estimators=100)
+clf.fit(x_train,y_train)
+print("Accuracy:",clf.score(x_test,y_test)*100,"%")
+pred=clf.predict(x_test)
+print(metrics.classification_report(y_test,pred))
+
+from sklearn.naive_bayes import GaussianNB
+clf=GaussianNB()
+clf.fit(x_train,y_train)
+print("Accuracy:",clf.score(x_test,y_test)*100,"%")
+pred=clf.predict(x_test)
+print(metrics.classification_report(y_test,pred))
+
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.metrics import mean_squared_error
+random_state=43
+clf=GradientBoostingClassifier(random_state=random_state)
+clf.fit(x_train,y_train)
+pred=clf.predict(x_test)
+print(metrics.classification_report(y_test,pred))
+print("Accuracy:",clf.score(x_test,y_test)*100,"%")
+
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.metrics import mean_squared_error
+from math import sqrt
+params = {'n_estimators': 200, 'max_depth': 4, 'min_samples_split': 2,
+          'learning_rate': 0.01, 'loss': 'ls'}
+clf = GradientBoostingRegressor(**params)
+clf.fit(x_train, y_train)
+mse = mean_squared_error(y_test, clf.predict(x_test))
+print("MSE: %.4f" % mse)
+se = sqrt(mean_squared_error(y_test, clf.predict(x_test)))
+print("RMSE: %.4f" % se)
+
+test_score = np.zeros((params['n_estimators'],), dtype=np.float64)
+
+for i, y_pred in enumerate(clf.staged_predict(x_test)):
+    test_score[i] = clf.loss_(y_test, y_pred)
+
+plt.figure(figsize=(12, 6))
+plt.subplot(1, 2, 1)
+plt.title('Deviance')
+plt.plot(np.arange(params['n_estimators']) + 1, clf.train_score_, 'b-',label='Training Set Deviance')
+plt.plot(np.arange(params['n_estimators']) + 1, test_score, 'r-',label='Test Set Deviance')
+plt.legend(loc='upper right')
+plt.xlabel('Boosting Iterations')
+plt.ylabel('Deviance')
+
+import pandas as pd
+overview = pd.DataFrame({"Training dataset": y_train.sum(),
+                      "Test dataset":y_test.sum()
+                      },
+                     index=["Healthy", "Sick"])
+overview[["Training dataset", "Test dataset"]]
+overview.iloc[0,0] = y_train.shape[0] -y_train.sum()
+overview.iloc[0,1] = y_test.shape[0] -y_test.sum()
+overview['total'] = overview['Training dataset'] + overview['Test dataset']
+overview.loc['total'] =overview.loc['Healthy'] + overview.loc['Sick']
+overview
+
+presence = heart.loc[heart['num'] >= 1, 'sex'].sum()
+absence = heart.loc[heart['num'] == 0, 'sex'].sum()
+activities = ['Presence of disease', 'Absence of disease']
+cols = ['red', 'green']
+list_gender = [absence, presence]
+plt.pie(list_gender,
+       labels = activities,
+       colors = cols,
+       radius = 0.7,
+       startangle = 90,
+       shadow = True,
+       explode = (0, 0.1),
+       autopct = '%1.1f%%')
+plt.title('Heart Disease Status')
+plt.show()
+
+plt.figure(figsize=(12,10))
+plt.subplot(221)
+sns.distplot(heart[heart['num']==0].age, color="red")
+plt.title('Age of patients without heart disease')
+plt.subplot(222)
+sns.distplot(heart[heart['num']>=1].age, color="black")
+plt.title('Age of patients with heart disease')
+plt.subplot(223)
+sns.distplot(heart[heart['num']==0].thalach, color="green")
+plt.title('Max heart rate of patients without heart disease')
+plt.subplot(224)
+sns.distplot(heart[heart['num']>=1].thalach, color="brown")
+plt.title('Max heart rate of patients with heart disease')
+plt.show()
+
+methods = [ "SVM","Logistic Regression", "Random Forest", "Naive Bayes", "Gradient Boosting"]
+accuracy = [46.91, 79.42, 85.59,  97.94, 100]
+colors = ["purple", "green", "orange", "magenta","#CFC60E"]
+
+sns.set_style("whitegrid")
+plt.figure(figsize=(16,5)) 
+plt.yticks(np.arange(0,100,10))
+plt.ylabel("Accuracy %")
+plt.xlabel("Algorithms")
+sns.barplot(x=methods, y=accuracy, palette=colors)
+plt.show()
+
+fig_age, axes = plt.subplots(nrows=2, ncols=1, figsize=(15, 8))
+facet_grid = sns.FacetGrid(heart, hue='num')
+facet_grid.map(sns.kdeplot, "age", shade=True, ax=axes[0])
+legend_labels = ['disease false', 'disease true']
+for t, l in zip(axes[0].get_legend().texts, legend_labels):
+    t.set_text(l)
+    axes[0].set(xlabel='age', ylabel='density')
+
+avg = heart[["age", "num"]].groupby(['age'], as_index=False).mean()
+sns.barplot(x='age', y='num', data=avg, ax=axes[1])
+axes[1].set(xlabel='age', ylabel='disease probability')
+plt.clf()
